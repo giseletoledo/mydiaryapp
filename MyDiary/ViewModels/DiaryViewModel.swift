@@ -39,18 +39,26 @@ class DiaryViewModel: ObservableObject {
     }
     
     // Adicionar
-    func addEntry(text: String, audioFileName: String? = nil) {
+    func addEntry(
+        text: String,
+        audioFileName: String? = nil,
+        date: Date = Date(),
+        imageData: Data? = nil
+    ) {
         guard let context = modelContext else { return }
-        
+
         let entry = DiaryEntry(
             text: text,
-            audioFileName: audioFileName
+            audioFileName: audioFileName,
+            date: date,
+            imageData: imageData
         )
-        
+
         context.insert(entry)
         saveContext()
         loadEntries()
     }
+
     
     // Deletar
     func deleteEntry(_ entry: DiaryEntry) {
