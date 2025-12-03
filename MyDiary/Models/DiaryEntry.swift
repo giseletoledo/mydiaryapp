@@ -15,8 +15,15 @@ class DiaryEntry {
     var text: String
     var audioFileName: String?
     
-    init(text: String = "", audioFileName: String? = nil) {
-        self.id = UUID()
+    var imageData: Data?
+
+    var hasImage: Bool {
+        imageData != nil
+    }
+
+    
+    init(id: UUID = UUID(), text: String, audioFileName: String? = nil, date:Date = Date(), imageData: Data? = nil) {
+        self.id = id
         self.date = Date()
         self.text = text
         self.audioFileName = audioFileName
