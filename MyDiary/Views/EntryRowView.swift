@@ -79,6 +79,16 @@ struct EntryRowView: View {
                     )
             }
             
+            if let data = entry.imageData,
+               let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipped()
+            }
+            
             // Player de áudio (se tiver)
             if entry.hasAudio {
                 VStack(spacing: 12) {
