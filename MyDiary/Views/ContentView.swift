@@ -4,58 +4,55 @@
 //
 //  Created by GISELE TOLEDO on 01/12/25.
 //
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @StateObject private var viewModel = DiaryViewModel()
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        NavigationView {
+            ZStack {
+                // Lista ou estado vazio
+                if viewModel.entries.isEmpty {
+                    EmptyStateView()
+                } else {
+                    DiaryListView()
+                        .environmentObject(viewModel)
                 }
-                .onDelete(perform: deleteItems)
+                
+                // Menu flutuante
+                FloatingMenuView()
+                    .environmentObject(viewModel)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
+            .navigationTitle("Meu Diário")
+            .onAppear {
+                viewModel.setupContext(modelContext)
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            .sheet(isPresented: $viewModel.showAddSheet) {
+                AddEntryView(entryType: viewModel.selectedEntryType)
+                    .environmentObject(viewModel)
             }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+// Estado vazio
+struct EmptyStateView: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "book.closed")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("Nenhuma entrada")
+                .font(.title2)
+                .foregroundColor(.secondary)
+            
+            Text("Toque no botão + para começar")
+                .font(.body)
+                .foregroundColor(.gray)
+        }
+    }
 }
