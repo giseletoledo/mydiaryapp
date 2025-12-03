@@ -5,6 +5,7 @@
 //  Created by GISELE TOLEDO on 01/12/25.
 //
 import SwiftUI
+import PhotosUI
 
 struct AddEntryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +20,10 @@ struct AddEntryView: View {
     @State private var recordingTime = 0
     @State private var timer: Timer?
     @State private var waveAmplitudes: [CGFloat] = Array(repeating: 5, count: 15)
+    
+    @State private var selectedDate = Date()
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedImageData: Data?
     
     var body: some View {
         NavigationView {
@@ -40,6 +45,13 @@ struct AddEntryView: View {
                 // Conteúdo principal
                 ScrollView {
                     VStack(spacing: 30) {
+                        DatePicker(
+                                "Data da entrada",
+                                selection: $selectedDate,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .padding(.horizontal)
                         if entryType == .text {
                             textEntryView
                         } else {
@@ -87,6 +99,38 @@ struct AddEntryView: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.blue.opacity(0.2), lineWidth: 1)
                 )
+            // Pré-visualização da imagem, se tiver
+            if let data = selectedImageData,
+               let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipped()
+            }
+
+            // Botão para escolher foto
+            PhotosPicker(
+                selection: $selectedPhotoItem,
+                matching: .images
+            ) {
+                Label("Adicionar imagem", systemImage: "photo.on.rectangle")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .tint(.blue)
+            .padding(.top, 8)
+
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        selectedImageData = data
+                    }
+                }
+            }
+
         }
     }
     
@@ -290,9 +334,15 @@ struct AddEntryView: View {
     private func saveEntry() {
         print("💾 Salvando entry - texto vazio? \(text.isEmpty), audioFileName: \(audioFileName ?? "nil")")
 
-        viewModel.addEntry(text: text, audioFileName: audioFileName)
+        viewModel.addEntry(
+            text: text,
+            audioFileName: audioFileName,
+            date: selectedDate,
+            imageData: selectedImageData
+        )
         dismiss()
     }
+
     
     // MARK: - Timer
     private func startTimer() {
