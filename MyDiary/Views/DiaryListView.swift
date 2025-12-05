@@ -30,5 +30,6 @@ struct DiaryListView: View {
             }
         }
         .listStyle(.plain)
+        .background(AppColors.background)
     }
 }

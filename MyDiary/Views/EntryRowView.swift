@@ -7,153 +7,131 @@
 
 import SwiftUI
 
-
 struct EntryRowView: View {
+    @EnvironmentObject private var viewModel: DiaryViewModel
+    
     let entry: DiaryEntry
     @State private var showAudioPlayer = false
-    @State private var pulseAnimation = false
+    @State private var showEditSheet = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header com tipo e data
+            // Header
             HStack(alignment: .top) {
-                // Badge do tipo com animação
-                HStack(spacing: 6) {
-                    Image(systemName: entry.entryType.icon)
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .scaleEffect(pulseAnimation ? 1.2 : 1.0)
-                        .animation(
-                            Animation.easeInOut(duration: 1)
-                                .repeatForever(autoreverses: true)
-                                .delay(Double.random(in: 0...0.5)),
-                            value: pulseAnimation
-                        )
-                    
-                    Text(entry.entryType.rawValue)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(entry.entryType.color.gradient)
-                        .shadow(color: entry.entryType.color.opacity(0.3), radius: 3, y: 2)
+                // Badge
+                AppBadge(
+                    text: entry.entryType.rawValue,
+                    icon: entry.entryType.icon,
+                    color: entry.entryType.foregroundColor
                 )
-                .onAppear {
-                    pulseAnimation = true
-                }
                 
                 Spacer()
                 
-                // Data com formatação melhor
-                VStack(alignment: .trailing, spacing: 2) {
+                // Data/Hora
+                VStack(alignment: .trailing, spacing: 4) {
                     Text(entry.date.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.secondaryText)
                     
                     Text(entry.date.formatted(date: .omitted, time: .shortened))
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.tertiaryText)
                 }
+                
+                // Botão editar
+                Button {
+                    showEditSheet = true
+                } label: {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(entry.entryType.foregroundColor)
+                        .padding(.leading, 8)
+                }
+                .buttonStyle(.plain)
             }
             
-            // Conteúdo da nota
+            // Texto
             if !entry.text.isEmpty {
                 Text(entry.text)
                     .font(.body)
                     .lineSpacing(4)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
+                    .foregroundColor(AppColors.primaryText)
+                    .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6).gradient)
-                            .shadow(color: .black.opacity(0.05), radius: 3, y: 2)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                    )
+                    .background(entry.entryType.backgroundColor)
+                    .cornerRadius(10)
             }
             
+            // Imagem
             if let data = entry.imageData,
                let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .frame(height: 180)
                     .clipped()
+                    .cornerRadius(10)
+                    .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
             }
             
-            // Player de áudio (se tiver)
+            // Áudio
             if entry.hasAudio {
-                VStack(spacing: 12) {
-                    // Botão para expandir/ocultar player
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            showAudioPlayer.toggle()
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: showAudioPlayer ? "chevron.up" : "chevron.down")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            
-                            Text(showAudioPlayer ? "Ocultar player" : "Ouvir gravação")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.blue)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "speaker.wave.2")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .symbolEffect(.bounce, value: showAudioPlayer)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
-                    }
-                    .buttonStyle(ScaleButtonStyle())
-                    
-                    // Player expandido
-                    if showAudioPlayer, let fileName = entry.audioFileName {
-                        AudioPlayerView(audioFileName: fileName)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                }
-                .padding(.top, 4)
+                audioSection
             }
-            
-            // Divider
-            Rectangle()
-                .fill(Color.gray.opacity(0.1))
-                .frame(height: 1)
-                .padding(.top, 8)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.05), radius: 5, y: 3)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white)
+                .shadow(color: AppColors.shadowLight, radius: 8, y: 2)
         )
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .sheet(isPresented: $showEditSheet) {
+            AddEntryView(
+                entryType: entry.entryType,
+                entryToEdit: entry
+            )
+            .environmentObject(viewModel)
+        }
     }
-}
-
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    
+    // MARK: - Audio Section
+    private var audioSection: some View {
+        VStack(spacing: 12) {
+            Button {
+                withAnimation(.spring()) {
+                    showAudioPlayer.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: showAudioPlayer ? "chevron.up.circle.fill" : "play.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(entry.entryType.foregroundColor)
+                    
+                    Text(showAudioPlayer ? "Ocultar player" : "Ouvir gravação")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(entry.entryType.foregroundColor)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "waveform")
+                        .font(.caption)
+                        .foregroundColor(entry.entryType.foregroundColor.opacity(0.7))
+                        .symbolEffect(.bounce, value: showAudioPlayer)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(entry.entryType.backgroundColor)
+                .cornerRadius(10)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            if showAudioPlayer, let fileName = entry.audioFileName {
+                AudioPlayerView(audioFileName: fileName)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
     }
 }

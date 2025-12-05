@@ -14,6 +14,7 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
+                AppColors.background.ignoresSafeArea()
                 // Lista ou estado vazio
                 if viewModel.entries.isEmpty {
                     EmptyStateView()
@@ -31,7 +32,7 @@ struct ContentView: View {
                 viewModel.setupContext(modelContext)
             }
             .sheet(isPresented: $viewModel.showAddSheet) {
-                AddEntryView(entryType: viewModel.selectedEntryType)
+                AddEntryView(entryType: viewModel.selectedEntryType, entryToEdit: nil)
                     .environmentObject(viewModel)
             }
         }

@@ -4,6 +4,7 @@
 //
 //  Created by GISELE TOLEDO on 01/12/25.
 //
+
 import SwiftUI
 import PhotosUI
 
@@ -12,6 +13,7 @@ struct AddEntryView: View {
     @EnvironmentObject private var viewModel: DiaryViewModel
     
     let entryType: EntryType
+    let entryToEdit: DiaryEntry?
     
     @State private var text = ""
     @State private var isRecording = false
@@ -20,279 +22,468 @@ struct AddEntryView: View {
     @State private var recordingTime = 0
     @State private var timer: Timer?
     @State private var waveAmplitudes: [CGFloat] = Array(repeating: 5, count: 15)
-    
     @State private var selectedDate = Date()
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     
+    // MARK: - Body
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Header com título
-                VStack(spacing: 10) {
-                    Text(title)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+            ZStack {
+                // Background
+                AppColors.background
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Header
+                    headerView
+                        .padding(.top, 24)
+                        .padding(.bottom, 20)
+                        .background(Color.white)
                     
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 30)
-                .padding(.bottom, 20)
-                
-                // Conteúdo principal
-                ScrollView {
-                    VStack(spacing: 30) {
-                        DatePicker(
-                                "Data da entrada",
-                                selection: $selectedDate,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .datePickerStyle(.compact)
-                            .padding(.horizontal)
-                        if entryType == .text {
-                            textEntryView
-                        } else {
-                            audioEntryView
+                    // Content
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Date Picker
+                            datePickerSection
+                            
+                            // Entry Content
+                            if entryType == .text || entryType == .mixed {
+                                textEntrySection
+                            }
+                            
+                            if entryType == .audio || entryType == .mixed {
+                                audioEntrySection
+                            }
                         }
+                        .padding(20)
                     }
-                    .padding()
+                    
+                    // Action Buttons
+                    actionButtonsView
                 }
-                
-                // Botões de ação
-                actionButtons
-                    .padding()
-                    .background(
-                        Rectangle()
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.05), radius: -5, y: -5)
-                    )
             }
-            .background(Color(.systemGray6))
             .navigationBarHidden(true)
+            .onAppear {
+                loadEntryDataIfEditing()
+            }
             .alert("Permissão necessária", isPresented: $showPermissionAlert) {
-                Button("OK", role: .cancel) { }
+                Button("Configurações") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancelar", role: .cancel) { }
             } message: {
-                Text("Precisamos de acesso ao microfone para gravar áudio.")
+                Text("Precisamos de acesso ao microfone para gravar áudio. Você pode ativar nas Configurações do iOS.")
             }
         }
     }
     
-    // MARK: - Views
-    private var textEntryView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Sua nota", systemImage: "note.text")
-                .font(.headline)
-                .foregroundColor(.blue)
+    // MARK: - Load Entry Data
+    private func loadEntryDataIfEditing() {
+        if let entry = entryToEdit {
+            // Carrega os dados da entrada existente
+            text = entry.text
+            selectedDate = entry.date
+            audioFileName = entry.audioFileName
+            selectedImageData = entry.imageData
             
-            TextEditor(text: $text)
-                .frame(height: 200)
+            // Se já tem áudio, desativa gravação
+            if entry.hasAudio {
+                isRecording = false
+            }
+        }
+    }
+    
+    // MARK: - Header
+    private var headerView: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Button {
+                    cancelRecording()
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.medium))
+                        .foregroundColor(AppColors.primary)
+                }
+                
+                Spacer()
+                
+                AppBadge(
+                    text: entryType.rawValue,
+                    icon: entryType.icon,
+                    color: entryType.color
+                )
+                
+                Spacer()
+                
+                // Botão invisível para manter layout
+                Image(systemName: "xmark")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.clear)
+            }
+            .padding(.horizontal, 20)
+            
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.primary)
+            
+            Text(subtitle)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    // MARK: - Date Picker Section
+    private var datePickerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(AppColors.primary)
+                Text("Data e Hora")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            
+            DatePicker(
+                "",
+                selection: $selectedDate,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .tint(AppColors.primary)
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+    }
+    
+    // MARK: - Text Entry Section
+    private var textEntrySection: some View {
+        VStack(spacing: 20) {
+            // Text Editor
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "note.text")
+                        .foregroundColor(AppColors.primary)
+                    Text("Sua nota")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                
+                ZStack(alignment: .topLeading) {
+                    if text.isEmpty {
+                        Text("Digite sua nota aqui...")
+                            .foregroundColor(.secondary.opacity(0.6))
+                            .padding(.top, 8)
+                            .padding(.leading, 5)
+                    }
+                    
+                    TextEditor(text: $text)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .frame(minHeight: 120)
+                }
                 .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: .black.opacity(0.05), radius: 5, y: 3)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                )
-            // Pré-visualização da imagem, se tiver
+                .background(Color.white)
+                .cornerRadius(10)
+                .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+            }
+            
+            // Image Section
+            imageSection
+        }
+    }
+    
+    // MARK: - Image Section
+    private var imageSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "photo")
+                    .foregroundColor(AppColors.secondary)
+                Text("Imagem (opcional)")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            
+            // Preview da imagem
             if let data = selectedImageData,
                let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .clipped()
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 200)
+                        .clipped()
+                        .cornerRadius(10)
+                        .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
+                    
+                    // Botão para remover
+                    Button {
+                        withAnimation(.spring()) {
+                            selectedImageData = nil
+                            selectedPhotoItem = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .background(
+                                Circle()
+                                    .fill(Color.black.opacity(0.5))
+                                    .frame(width: 28, height: 28)
+                            )
+                    }
+                    .padding(8)
+                }
+                .transition(.scale.combined(with: .opacity))
             }
-
-            // Botão para escolher foto
+            
             PhotosPicker(
                 selection: $selectedPhotoItem,
                 matching: .images
             ) {
-                Label("Adicionar imagem", systemImage: "photo.on.rectangle")
-                    .font(.subheadline)
+                HStack {
+                    Image(systemName: selectedImageData == nil ? "photo.badge.plus" : "photo.badge.arrow.down")
+                    Text(selectedImageData == nil ? "Adicionar imagem" : "Trocar imagem")
+                }
+                .font(.subheadline)
+                .foregroundColor(AppColors.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
+                )
             }
-            .buttonStyle(.bordered)
-            .tint(.blue)
-            .padding(.top, 8)
-
             .onChange(of: selectedPhotoItem) { _, newItem in
                 guard let newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        selectedImageData = data
+                        withAnimation(.spring()) {
+                            selectedImageData = data
+                        }
                     }
                 }
             }
-
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+    }
+    
+    // MARK: - Audio Entry Section
+    private var audioEntrySection: some View {
+        VStack(spacing: 20) {
+            // Recording Interface
+            audioRecorderCard
+            
+            // Optional Note (para tipos mixed)
+            if entryType == .mixed {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "text.append")
+                            .foregroundColor(AppColors.secondary)
+                        Text("Nota (opcional)")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(.primary)
+                        Spacer()
+                    }
+                    
+                    TextField("Adicione uma nota à gravação...", text: $text)
+                        .padding(12)
+                        .background(Color.white)
+                        .cornerRadius(10)
+                        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+                }
+                .padding(16)
+                .background(Color.white)
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+            }
         }
     }
     
-    private var audioEntryView: some View {
-        VStack(spacing: 30) {
-            // Visualizador de gravação
-            VStack(spacing: 20) {
-                // Indicador de status
-                HStack {
+    // MARK: - Audio Recorder Card
+    private var audioRecorderCard: some View {
+        VStack(spacing: 20) {
+            // Status Bar
+            HStack {
+                // Status Indicator
+                HStack(spacing: 6) {
                     Circle()
-                        .fill(isRecording ? Color.red : Color.green)
-                        .frame(width: 10, height: 10)
+                        .fill(isRecording ? AppColors.recording : AppColors.success)
+                        .frame(width: 8, height: 8)
                         .scaleEffect(isRecording ? 1.5 : 1.0)
                         .animation(
                             isRecording ?
-                                .easeInOut(duration: 0.5).repeatForever() :
+                                Animation.easeInOut(duration: 0.5).repeatForever() :
                                 .default,
                             value: isRecording
                         )
                     
-                    Text(isRecording ? "GRAVANDO" : "PRONTO PARA GRAVAR")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(isRecording ? .red : .green)
-                    
-                    Spacer()
-                    
-                    // Timer
-                    Text(formatTime(recordingTime))
-                        .font(.title3.monospacedDigit())
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                    Text(isRecording ? "GRAVANDO" : "PRONTO")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(isRecording ? AppColors.recording : AppColors.success)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.white)
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(isRecording ? AppColors.recording.opacity(0.3) : AppColors.success.opacity(0.3), lineWidth: 1)
+                )
                 
-                // Visualizador de onda
-                WaveformView(amplitudes: waveAmplitudes, isPlaying: isRecording)
-                    .frame(height: 100)
-                    .onChange(of: isRecording) { oldValue, newValue in
-                        if newValue {
-                            startWaveAnimation()
-                        }
-                    }
+                Spacer()
                 
-                // Botão de gravação principal
-                Button {
-                    toggleRecording()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: isRecording ?
-                                        [.red, .orange] :
-                                        [.blue, .purple],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 80, height: 80)
-                            .shadow(
-                                color: isRecording ?
-                                    .red.opacity(0.4) :
-                                    .blue.opacity(0.4),
-                                radius: 15,
-                                y: 5
-                            )
-                            .scaleEffect(isRecording ? 1.05 : 1.0)
-                            .animation(.spring(), value: isRecording)
-                        
-                        Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                            .font(.title)
-                            .foregroundColor(.white)
-                    }
-                }
-                .buttonStyle(ScaleButtonStyle())
+                // Timer
+                Text(formatTime(recordingTime))
+                    .font(.system(.title3, design: .monospaced))
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(8)
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
-            )
             
-            // Campo de nota opcional
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Nota (opcional)", systemImage: "text.append")
-                    .font(.headline)
-                    .foregroundColor(.purple)
-                
-                TextField("Adicione uma nota à gravação...", text: $text)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray5))
-                    )
+            // Waveform
+            HStack(spacing: 3) {
+                ForEach(0..<waveAmplitudes.count, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(isRecording ? AppColors.recording : AppColors.primary)
+                        .frame(width: 3, height: waveAmplitudes[index])
+                }
             }
+            .frame(height: 40)
+            .onChange(of: isRecording) { _, newValue in
+                if newValue {
+                    startWaveAnimation()
+                }
+            }
+            
+            // Record Button
+            Button {
+                toggleRecording()
+            } label: {
+                Circle()
+                    .fill(isRecording ? Color.red : AppColors.primary)
+                    .frame(width: 70, height: 70)
+                    .overlay(
+                        Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    )
+                    .shadow(color: isRecording ? .red.opacity(0.3) : AppColors.primary.opacity(0.3),
+                           radius: 10, y: 5)
+            }
+            
+            Text(isRecording ? "Toque para parar" : "Toque para gravar")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
+        .padding(20)
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
     
-    private var actionButtons: some View {
-        HStack(spacing: 20) {
-            // Botão cancelar
+    // MARK: - Action Buttons
+    private var actionButtonsView: some View {
+        VStack(spacing: 12) {
+            // Botão Salvar
+            if canSave {
+                Button {
+                    saveEntry()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark")
+                        Text("Salvar")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(AppColors.primary)
+                    .cornerRadius(12)
+                }
+            }
+            
+            // Botão Cancelar
             Button {
                 cancelRecording()
                 dismiss()
             } label: {
-                Text("Cancelar")
-                    .font(.headline)
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        Capsule()
-                            .fill(Color.red.opacity(0.1))
-                    )
+                HStack(spacing: 8) {
+                    Image(systemName: "xmark")
+                    Text("Cancelar")
+                }
+                .font(.headline)
+                .foregroundColor(AppColors.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.white)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(AppColors.primary.opacity(0.3), lineWidth: 1)
+                )
             }
-            
-            // Botão salvar
-            Button {
-                saveEntry()
-            } label: {
-                Text("Salvar")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        Capsule()
-                            .fill(canSave ? Color.blue.gradient : Color.gray.gradient)
-                    )
-            }
-            .disabled(!canSave)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 32)
+        .background(Color.white.shadow(color: .black.opacity(0.1), radius: 10, y: -5))
     }
     
     // MARK: - Computed Properties
     private var title: String {
-        switch entryType {
-        case .text: return "Nova Nota"
-        case .audio: return "Gravação de Áudio"
-        case .mixed: return "Gravação com Nota"
+        if entryToEdit != nil {
+            return "Editar Entrada"
+        } else {
+            switch entryType {
+            case .text: return "Nova Nota"
+            case .audio: return "Gravação de Áudio"
+            case .mixed: return "Gravação com Nota"
+            }
         }
     }
     
     private var subtitle: String {
-        switch entryType {
-        case .text: return "Escreva o que quiser lembrar"
-        case .audio: return "Grave seus pensamentos em voz alta"
-        case .mixed: return "Combine áudio e texto"
+        if entryToEdit != nil {
+            return "Atualize sua entrada"
+        } else {
+            switch entryType {
+            case .text: return "Escreva o que quiser lembrar"
+            case .audio: return "Grave seus pensamentos em voz alta"
+            case .mixed: return "Combine áudio e texto"
+            }
         }
     }
     
     private var canSave: Bool {
         if entryType == .text {
             return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        } else {
+        } else if entryType == .audio {
+            return audioFileName != nil || !text.isEmpty
+        } else { // mixed
             return audioFileName != nil || !text.isEmpty
         }
     }
     
-    // MARK: - Actions
+    // MARK: - Audio Actions
     private func toggleRecording() {
         if isRecording {
             stopRecording()
@@ -307,7 +498,9 @@ struct AddEntryView: View {
             
             if hasPermission {
                 audioFileName = AudioManager.shared.startRecording()
-                isRecording = true
+                withAnimation(.spring()) {
+                    isRecording = true
+                }
                 startTimer()
             } else {
                 showPermissionAlert = true
@@ -317,7 +510,9 @@ struct AddEntryView: View {
     
     private func stopRecording() {
         AudioManager.shared.stopRecording()
-        isRecording = false
+        withAnimation(.spring()) {
+            isRecording = false
+        }
         stopTimer()
     }
     
@@ -325,24 +520,35 @@ struct AddEntryView: View {
         if isRecording {
             stopRecording()
         }
-        if let fileName = audioFileName {
+        
+        // Só deleta o arquivo se for uma nova entrada (não edição)
+        if let fileName = audioFileName, entryToEdit == nil {
             AudioManager.shared.deleteAudioFile(named: fileName)
             audioFileName = nil
         }
     }
     
     private func saveEntry() {
-        print("💾 Salvando entry - texto vazio? \(text.isEmpty), audioFileName: \(audioFileName ?? "nil")")
-
-        viewModel.addEntry(
-            text: text,
-            audioFileName: audioFileName,
-            date: selectedDate,
-            imageData: selectedImageData
-        )
+        if let entryToEdit = entryToEdit {
+            // MODE: EDITAR entrada existente
+            viewModel.updateEntry(
+                entryToEdit,
+                newText: text,
+                newAudioFileName: audioFileName,
+                newDate: selectedDate,
+                newImageData: selectedImageData
+            )
+        } else {
+            // MODE: CRIAR nova entrada
+            viewModel.addEntry(
+                text: text,
+                audioFileName: audioFileName,
+                date: selectedDate,
+                imageData: selectedImageData
+            )
+        }
         dismiss()
     }
-
     
     // MARK: - Timer
     private func startTimer() {
@@ -374,4 +580,10 @@ struct AddEntryView: View {
         let seconds = seconds % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    AddEntryView(entryType: .text, entryToEdit: nil)
+        .environmentObject(DiaryViewModel())
 }

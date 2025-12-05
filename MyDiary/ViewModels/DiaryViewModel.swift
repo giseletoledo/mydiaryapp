@@ -100,6 +100,41 @@ class DiaryViewModel: ObservableObject {
         
         return stats
     }
+
+    // Atualizar
+    func updateEntry(
+        _ entry: DiaryEntry,
+        newText: String,
+        newAudioFileName: String? = nil,
+        newDate: Date? = nil,
+        newImageData: Data? = nil
+    ) {
+        guard let context = modelContext else { return }
+        
+        // Atualiza os dados
+        entry.text = newText
+        entry.date = newDate ?? entry.date
+        
+        // Atualiza áudio se necessário
+        if let newAudio = newAudioFileName {
+            // Remove arquivo de áudio antigo se existir
+            if let oldAudio = entry.audioFileName {
+                AudioManager.shared.deleteAudioFile(named: oldAudio)
+            }
+            entry.audioFileName = newAudio
+        }
+        
+        // Atualiza imagem
+        entry.imageData = newImageData
+        
+        saveContext()
+        loadEntries()
+    }
+
+    // Método auxiliar para verificar se é edição
+    func isEditing(_ entry: DiaryEntry?) -> Bool {
+        return entry != nil
+    }
     
     // Salvar contexto
     private func saveContext() {
