@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C11C9A9A2EE2F5D400FA6EFA /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = C11C9A992EE2F5C600FA6EFA /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C1A6C60C2EDDC7F500E0750A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C11C9A992EE2F5C600FA6EFA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 		C1A6C5FC2EDDC7F000E0750A /* MyDiary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyDiary.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1A6C60B2EDDC7F500E0750A /* MyDiaryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyDiaryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1A6C6152EDDC7F500E0750A /* MyDiaryUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyDiaryUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -79,6 +84,7 @@
 				C1A6C60E2EDDC7F500E0750A /* MyDiaryTests */,
 				C1A6C6182EDDC7F500E0750A /* MyDiaryUITests */,
 				C1A6C5FD2EDDC7F000E0750A /* Products */,
+				C11C9A992EE2F5C600FA6EFA /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -236,6 +242,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C11C9A9A2EE2F5D400FA6EFA /* README.md in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,15 +1,8 @@
-//
-//  README.md
-//  MyDiary
-//
-//  Created by GISELE TOLEDO on 05/12/25.
-//
-
-📓 MyDiaryApp
+# 📓 MyDiaryApp
 
 Um aplicativo de diário pessoal para iOS, desenvolvido em SwiftUI, com suporte a entradas de texto e áudio, design system próprio, arquitetura limpa (MVVM) e testes automatizados.
 
-✨ Funcionalidades
+##  Funcionalidades
 
 ✍️ Criar entradas de diário (texto e áudio)
 
@@ -23,9 +16,9 @@ Um aplicativo de diário pessoal para iOS, desenvolvido em SwiftUI, com suporte 
 
 🎚️ Visualização de forma de onda (Waveform) na gravação
 
-🧪 Testes Unitários & UI Tests
 
-📱 Tecnologias utilizadas
+
+## Tecnologias utilizadas
 
 Swift 5+
 
@@ -35,10 +28,9 @@ MVVM
 
 AVFoundation (captura e reprodução de áudio)
 
-XCTest & XCUITest
-
 Design System customizado
 
+```
 📁 Estrutura do Projeto
 MyDiary/
 ├── DesignSystem/          # Componentes reutilizáveis e estilo global
@@ -87,9 +79,9 @@ MyDiary/
 ├── Assets/                # Ícones, imagens e recursos
 │
 ├── MyDiaryApp.swift       # Ponto de entrada da aplicação
+```
 
-
-🚀 Como rodar o projeto
+# Como rodar o projeto
 
 Clone o repositório:
 
@@ -102,7 +94,8 @@ Selecione o simulador ou dispositivo físico.
 
 Pressione ⌘ + R para rodar.
 
-🎨 Design System
+
+## 🎨 Design System
 
 O projeto inclui um Design System completo, organizado em módulos reutilizáveis:
 
@@ -129,7 +122,7 @@ AppAnimations – animações customizadas
 Isso permite consistência visual e facilita expansão futura.
 
 
-🎧 Gravação & Reprodução de Áudio
+## 🎧 Gravação & Reprodução de Áudio
 
 O módulo AudioManager gerencia:
 
