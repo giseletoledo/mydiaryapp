@@ -3,7 +3,7 @@
 Um aplicativo de diário pessoal para iOS, desenvolvido em SwiftUI, com suporte a entradas de texto e áudio, design system próprio, arquitetura limpa (MVVM) e testes automatizados.
 
 
-<img src="Simulator_iPhone_17_Pro_MyDiary.png" width="300">
+<img src="https://raw.githubusercontent.com/giseletoledo/mydiaryapp/refs/heads/main/Simulator_iPhone_17_Pro_MyDiary.jpg" width="300">
 
 ##  Funcionalidades
 
